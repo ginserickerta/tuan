@@ -4,7 +4,13 @@ import { db } from "./db";
 import { initialSchedule, nextSchedule, estimateMinutes } from "./scheduler/engine";
 import { FLASH_MINUTES } from "./scheduler/config";
 import { todayISO } from "./scheduler/dates";
-import type { ExamTrack, Grade, SubjectType, Topic } from "./scheduler/types";
+import type {
+  ExamTrack,
+  Grade,
+  QuizQuestion,
+  SubjectType,
+  Topic,
+} from "./scheduler/types";
 
 export interface NewTopicInput {
   title: string;
@@ -34,6 +40,8 @@ export async function addTopic(input: NewTopicInput): Promise<number> {
     reviewCount: 0,
     lapseCount: 0,
     archived: false,
+    quizLevel: 3,
+    easyStreak: 0,
   };
 
   const id = await db.topics.add(topic);
@@ -50,6 +58,31 @@ export async function addTopic(input: NewTopicInput): Promise<number> {
   return id as number;
 }
 
+/**
+ * Quiz-difficulty ratchet: two consecutive "ง่ายมาก" bump the served level,
+ * any struggle (grade ≤2) drops it back down.
+ */
+function nextQuizRatchet(
+  topic: Topic,
+  grade: Grade,
+): { quizLevel: number; easyStreak: number } {
+  let quizLevel = topic.quizLevel ?? 3;
+  let easyStreak = topic.easyStreak ?? 0;
+  if (grade === 4) {
+    easyStreak += 1;
+    if (easyStreak >= 2) {
+      quizLevel = Math.min(5, quizLevel + 1);
+      easyStreak = 0;
+    }
+  } else if (grade <= 2) {
+    quizLevel = Math.max(2, quizLevel - 1);
+    easyStreak = 0;
+  } else {
+    easyStreak = 0;
+  }
+  return { quizLevel, easyStreak };
+}
+
 /** Record a review-day grade and reschedule. flash=true charges only 1 minute. */
 export async function reviewTopic(
   topic: Topic,
@@ -58,6 +91,7 @@ export async function reviewTopic(
 ): Promise<void> {
   const today = todayISO();
   const sched = nextSchedule(topic, grade, today);
+  const ratchet = nextQuizRatchet(topic, grade);
 
   await db.transaction("rw", db.topics, db.reviews, async () => {
     await db.topics.update(topic.id!, {
@@ -67,6 +101,8 @@ export async function reviewTopic(
       lastReviewedAt: today,
       reviewCount: grade >= 3 ? topic.reviewCount + 1 : topic.reviewCount,
       lapseCount: grade === 1 ? topic.lapseCount + 1 : topic.lapseCount,
+      quizLevel: ratchet.quizLevel,
+      easyStreak: ratchet.easyStreak,
     });
     await db.reviews.add({
       topicId: topic.id!,
@@ -97,8 +133,23 @@ export async function setArchived(id: number, archived: boolean): Promise<void> 
 }
 
 export async function deleteTopic(id: number): Promise<void> {
-  await db.transaction("rw", db.topics, db.reviews, async () => {
+  await db.transaction("rw", db.topics, db.reviews, db.questions, async () => {
     await db.topics.delete(id);
     await db.reviews.where("topicId").equals(id).delete();
+    await db.questions.where("topicId").equals(id).delete();
   });
+}
+
+/** Create a topic (Day-0 graded) together with its generated quiz pool. */
+export async function addTopicWithQuiz(
+  input: NewTopicInput,
+  questions: Omit<QuizQuestion, "id" | "topicId">[],
+): Promise<number> {
+  const topicId = await addTopic(input);
+  if (questions.length > 0) {
+    await db.questions.bulkAdd(
+      questions.map((q) => ({ ...q, topicId })),
+    );
+  }
+  return topicId;
 }

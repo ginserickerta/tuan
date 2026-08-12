@@ -34,6 +34,37 @@ export interface Topic {
   reviewCount: number; // successful review passes (not counting Day-0)
   lapseCount: number; // times graded "ลืมสนิท"
   archived: boolean; // manually retired or exam passed
+
+  // Quiz difficulty ratchet (Phase 2). Optional for pre-v2 records.
+  /** target quiz difficulty 2–5; questions within ±1 of this are served */
+  quizLevel?: number;
+  /** consecutive "ง่ายมาก" grades; 2 in a row bumps quizLevel */
+  easyStreak?: number;
+}
+
+/** Bloom's-taxonomy bucket used to force a difficulty mix in generation. */
+export type BloomLevel = "recall" | "apply" | "analyze";
+
+export type QuestionType = "mcq" | "short" | "numeric";
+
+/** A generated quiz question (pool of ~8 per topic, stored separately). */
+export interface QuizQuestion {
+  id?: number;
+  topicId: number;
+  type: QuestionType;
+  /** 2 (พื้นฐาน) … 5 (ระดับข้อสอบยาก) */
+  difficulty: number;
+  bloom: BloomLevel;
+  /** may contain inline LaTeX between $…$ */
+  stem: string;
+  /** MCQ only — exactly 4 entries; empty array otherwise */
+  choices: string[];
+  /** MCQ only — index into choices; -1 otherwise */
+  correctIndex: number;
+  answer: string;
+  explanation: string;
+  /** numeric re-rolls: same structure, different numbers (so answers can't be memorized) */
+  variants: { stem: string; answer: string }[];
 }
 
 export interface ReviewLog {
