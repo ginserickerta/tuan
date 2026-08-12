@@ -9,7 +9,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { addTopicWithQuiz } from "@/lib/repo";
 import { db } from "@/lib/db";
 import { initialSchedule } from "@/lib/scheduler/engine";
-import { todayISO } from "@/lib/scheduler/dates";
+import { todayISO, addDays, diffDays, formatThai } from "@/lib/scheduler/dates";
 import { NEW_TOPICS_PER_DAY_TARGET } from "@/lib/scheduler/config";
 import GradeButtons from "@/components/GradeButtons";
 import BridgeQuiz from "@/components/BridgeQuiz";
@@ -75,26 +75,34 @@ export default function AddPage() {
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const addedToday = useLiveQuery(
-    () => db.topics.where("createdAt").equals(todayISO()).count(),
-    [],
+  const today = todayISO();
+  // The day the material was studied — not necessarily the day it's logged.
+  const [studiedOn, setStudiedOn] = useState(today);
+  const daysLate = diffDays(studiedOn, today);
+
+  // The pacing warning is about the day being logged, not the day of entry.
+  const addedThatDay = useLiveQuery(
+    () => db.topics.where("createdAt").equals(studiedOn).count(),
+    [studiedOn],
   );
 
   const canProceed = title.trim().length > 0 && subject.trim().length > 0;
 
-  // Preview the first review date per grade, so the buttons explain themselves.
+  // Preview when each grade lands the first review, counted from today so a
+  // backdated topic honestly says "ทบทวนวันนี้" instead of a stale interval.
   const hints = Object.fromEntries(
-    ([1, 2, 3, 4] as Grade[]).map((g) => [
-      g,
-      `${initialSchedule(g, examTrack, todayISO()).intervalDays} วัน`,
-    ]),
+    ([1, 2, 3, 4] as Grade[]).map((g) => {
+      const due = initialSchedule(g, examTrack, studiedOn).dueDate;
+      const inDays = diffDays(today, due);
+      return [g, inDays <= 0 ? "ทบทวนวันนี้" : `${inDays} วัน`];
+    }),
   );
 
   async function saveWithGrade(g: Grade) {
     if (saving) return;
     setSaving(true);
     await addTopicWithQuiz(
-      { title, subject, examTrack, subjectType, notes, dayZeroGrade: g },
+      { title, subject, examTrack, subjectType, notes, dayZeroGrade: g, studiedOn },
       questions,
     );
     router.push("/");
@@ -145,11 +153,14 @@ export default function AddPage() {
           <p className="text-[17px] font-semibold leading-snug text-balance">{title}</p>
           <p className="mt-1 text-[12px] text-ink-3">
             {subject}
+            {daysLate > 0 && ` · เรียน ${formatThai(studiedOn)}`}
             {questions.length > 0 && ` · ควิซ ${questions.length} ข้อพร้อมใช้`}
           </p>
         </div>
         <p className="text-[13px] text-ink-2">
-          ตอบตามจริง — คะแนนนี้กำหนดว่าระบบจะพาเรื่องนี้กลับมาเร็วแค่ไหน
+          {daysLate > 0
+            ? `ตอบตามความเข้าใจ ณ วันที่เรียน (${formatThai(studiedOn)}) — ตารางนับจากวันนั้น`
+            : "ตอบตามจริง — คะแนนนี้กำหนดว่าระบบจะพาเรื่องนี้กลับมาเร็วแค่ไหน"}
         </p>
         <GradeButtons
           mode="dayZero"
@@ -200,12 +211,14 @@ export default function AddPage() {
         ))}
       </div>
 
-      {typeof addedToday === "number" && addedToday >= NEW_TOPICS_PER_DAY_TARGET && (
-        <div className="drop-in rounded-xl border border-warn-line bg-warn-soft px-3 py-2.5 text-[12px] leading-relaxed text-warn">
-          วันนี้เพิ่มไปแล้ว {addedToday} หัวข้อ — เกิน {NEW_TOPICS_PER_DAY_TARGET}{" "}
-          หัวข้อ/วัน โหลดทบทวนใน 2–3 สัปดาห์ข้างหน้าจะเริ่มหนัก เพิ่มได้แต่ควรรู้ไว้
-        </div>
-      )}
+      {typeof addedThatDay === "number" &&
+        addedThatDay >= NEW_TOPICS_PER_DAY_TARGET && (
+          <div className="drop-in rounded-xl border border-warn-line bg-warn-soft px-3 py-2.5 text-[12px] leading-relaxed text-warn">
+            {daysLate === 0 ? "วันนี้" : formatThai(studiedOn)}เพิ่มไปแล้ว{" "}
+            {addedThatDay} หัวข้อ — เกิน {NEW_TOPICS_PER_DAY_TARGET} หัวข้อ/วัน
+            โหลดทบทวนใน 2–3 สัปดาห์ข้างหน้าจะเริ่มหนัก เพิ่มได้แต่ควรรู้ไว้
+          </div>
+        )}
 
       {mode === "photo" && (
         <div className="rise-in space-y-4">
@@ -246,6 +259,50 @@ export default function AddPage() {
                 <option key={s} value={s} />
               ))}
             </datalist>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[13px] font-semibold">
+              เรียนเมื่อไหร่
+            </label>
+            <div className="flex gap-2">
+              {([0, 1] as const).map((back) => {
+                const d = addDays(today, -back);
+                return (
+                  <button
+                    key={back}
+                    type="button"
+                    onClick={() => setStudiedOn(d)}
+                    aria-pressed={studiedOn === d}
+                    className={`press flex-1 rounded-xl border py-2.5 text-[13px] font-semibold ${
+                      studiedOn === d
+                        ? "border-accent bg-accent-soft text-accent"
+                        : "border-line bg-surface text-ink-2"
+                    }`}
+                  >
+                    {back === 0 ? "วันนี้" : "เมื่อวาน"}
+                  </button>
+                );
+              })}
+              <input
+                type="date"
+                value={studiedOn}
+                max={today}
+                onChange={(e) => e.target.value && setStudiedOn(e.target.value)}
+                aria-label="เลือกวันที่เรียน"
+                className={`tnum flex-1 rounded-xl border px-2.5 py-2.5 text-[13px] ${
+                  daysLate > 1
+                    ? "border-accent bg-accent-soft text-accent"
+                    : "border-line bg-surface text-ink-2"
+                }`}
+              />
+            </div>
+            {daysLate > 0 && (
+              <p className="mt-1.5 text-[11px] text-ink-3">
+                ลงย้อนหลัง {daysLate} วัน ({formatThai(studiedOn)}) —
+                ตารางจะนับจากวันที่เรียนจริง หัวข้อนี้อาจถึงคิวทบทวนทันที
+              </p>
+            )}
           </div>
 
           <div>

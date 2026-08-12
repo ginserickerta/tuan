@@ -8,6 +8,7 @@ import { todayISO } from "./scheduler/dates";
 import type {
   ExamTrack,
   Grade,
+  ISODate,
   QuizQuestion,
   SubjectType,
   Topic,
@@ -20,12 +21,18 @@ export interface NewTopicInput {
   subjectType: SubjectType;
   notes: string;
   dayZeroGrade: Grade;
+  /** the day the material was actually studied; defaults to today */
+  studiedOn?: ISODate;
 }
 
-/** Create a topic and schedule its first review from the Day-0 grade. */
+/**
+ * Create a topic and schedule its first review from the Day-0 grade.
+ * Backdating is supported: the schedule is measured from the day it was
+ * studied, so a topic logged late can already be due (or overdue) today.
+ */
 export async function addTopic(input: NewTopicInput): Promise<number> {
-  const today = todayISO();
-  const sched = initialSchedule(input.dayZeroGrade, input.examTrack, today);
+  const studied = input.studiedOn ?? todayISO();
+  const sched = initialSchedule(input.dayZeroGrade, input.examTrack, studied);
 
   const topic: Topic = {
     title: input.title.trim(),
@@ -33,7 +40,7 @@ export async function addTopic(input: NewTopicInput): Promise<number> {
     examTrack: input.examTrack,
     subjectType: input.subjectType,
     notes: input.notes.trim(),
-    createdAt: today,
+    createdAt: studied,
     ease: sched.ease,
     intervalDays: sched.intervalDays,
     dueDate: sched.dueDate,
@@ -48,7 +55,7 @@ export async function addTopic(input: NewTopicInput): Promise<number> {
   const id = await db.topics.add(topic);
   await db.reviews.add({
     topicId: id as number,
-    date: today,
+    date: studied,
     grade: input.dayZeroGrade,
     isDayZero: true,
     intervalBefore: 0,

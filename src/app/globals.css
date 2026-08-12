@@ -230,16 +230,18 @@ body {
 .stagger > *:nth-child(4) { animation-delay: 120ms; }
 .stagger > *:nth-child(5) { animation-delay: 160ms; }
 
-/* Accordion via grid-template-rows: no height animation, no layout thrash. */
-.collapse {
+/* Accordion via grid-template-rows: no height animation, no layout thrash.
+   NOT named .collapse — Tailwind ships a `collapse` utility (visibility:
+   collapse) and the collision silently hides the panel's contents. */
+.disclosure {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows var(--dur-base) var(--ease-out);
 }
-.collapse[data-open="true"] {
+.disclosure[data-open="true"] {
   grid-template-rows: 1fr;
 }
-.collapse > * {
+.disclosure > * {
   overflow: hidden;
   min-height: 0;
 }
@@ -259,6 +261,6 @@ body {
   }
   .card-leaving { transform: none; }
   .press:active { transform: none; }
-  .collapse { transition-duration: 1ms; }
+  .disclosure { transition-duration: 1ms; }
   .fill { transition-duration: 1ms; }
 }

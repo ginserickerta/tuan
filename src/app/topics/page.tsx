@@ -68,7 +68,7 @@ function Section({
           <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
-      <div className="collapse" data-open={open}>
+      <div className="disclosure" data-open={open}>
         <div>
           <div className="pt-3">{children}</div>
         </div>
@@ -232,7 +232,7 @@ export default function TopicsPage() {
                 </div>
               </button>
 
-              <div className="collapse" data-open={open}>
+              <div className="disclosure" data-open={open}>
                 <div>
                   <div className="mt-2.5 space-y-2.5 border-t border-line pt-2.5">
                     {t.notes && (

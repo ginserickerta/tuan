@@ -114,7 +114,7 @@ export default function BridgeQuiz({
           </button>
         </div>
 
-        <div className="collapse" data-open={showPrompt}>
+        <div className="disclosure" data-open={showPrompt}>
           <div>
             <textarea
               readOnly
