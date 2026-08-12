@@ -153,3 +153,23 @@ export async function addTopicWithQuiz(
   }
   return topicId;
 }
+
+/** Attach questions to an existing topic. mode "replace" clears the old pool first. */
+export async function saveQuestions(
+  topicId: number,
+  questions: Omit<QuizQuestion, "id" | "topicId">[],
+  mode: "append" | "replace",
+): Promise<void> {
+  await db.transaction("rw", db.questions, async () => {
+    if (mode === "replace") {
+      await db.questions.where("topicId").equals(topicId).delete();
+    }
+    if (questions.length > 0) {
+      await db.questions.bulkAdd(questions.map((q) => ({ ...q, topicId })));
+    }
+  });
+}
+
+export async function countQuestions(topicId: number): Promise<number> {
+  return db.questions.where("topicId").equals(topicId).count();
+}
