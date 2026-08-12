@@ -1,6 +1,6 @@
 "use client";
-// หน้า "คลัง" — every topic with its scheduling state, for verifying the system
-// and light management (archive / delete). Search + full library grow in Phase 5.
+// หน้า "คลัง" — every topic with its scheduling state, search, the 30-day load
+// forecast, and the calendar / backup panels.
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 import { db } from "@/lib/db";
@@ -11,18 +11,18 @@ import BridgeQuiz from "@/components/BridgeQuiz";
 import BackupPanel from "@/components/BackupPanel";
 import CalendarExport from "@/components/CalendarExport";
 import LoadForecastChart from "@/components/LoadForecastChart";
-import type { Topic } from "@/lib/scheduler/types";
+import type { ExamTrack, Topic } from "@/lib/scheduler/types";
 
-const TRACK_CHIP: Record<string, string> = {
-  TGAT_TPAT: "bg-violet-100 text-violet-700",
-  ALEVEL: "bg-emerald-100 text-emerald-700",
+const TRACK: Record<ExamTrack, string> = {
+  TGAT_TPAT: "bg-tgat-soft text-tgat",
+  ALEVEL: "bg-alevel-soft text-alevel",
 };
 
 function dueLabel(t: Topic, today: string): { text: string; cls: string } {
   const d = diffDays(today, t.dueDate);
-  if (d < 0) return { text: `ค้าง ${-d} วัน`, cls: "text-red-600 font-medium" };
-  if (d === 0) return { text: "วันนี้", cls: "text-teal-600 font-medium" };
-  return { text: formatThai(t.dueDate), cls: "text-stone-400" };
+  if (d < 0) return { text: `ค้าง ${-d} วัน`, cls: "text-danger font-semibold" };
+  if (d === 0) return { text: "วันนี้", cls: "text-accent font-semibold" };
+  return { text: formatThai(t.dueDate), cls: "text-ink-3" };
 }
 
 function matchesSearch(t: Topic, q: string): boolean {
@@ -31,6 +31,49 @@ function matchesSearch(t: Topic, q: string): boolean {
     t.title.toLowerCase().includes(q) ||
     t.subject.toLowerCase().includes(q) ||
     t.notes.toLowerCase().includes(q)
+  );
+}
+
+/** Disclosure whose body animates open via grid-template-rows (no layout thrash). */
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-t border-line pt-3">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="press flex w-full items-center justify-between text-[13px] font-medium text-ink-2"
+      >
+        {title}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className="text-ink-3 transition-transform duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      <div className="collapse" data-open={open}>
+        <div>
+          <div className="pt-3">{children}</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -49,23 +92,23 @@ export default function TopicsPage() {
   }, []);
 
   if (!topics)
-    return <p className="text-stone-400 text-sm mt-8 text-center">กำลังโหลด…</p>;
+    return <p className="mt-10 text-center text-sm text-ink-3">กำลังโหลด…</p>;
 
   // Full-screen bridge flow for one topic
   if (quizFor) {
     const existing = quizCounts?.get(quizFor.id!) ?? 0;
     return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-bold">เพิ่มควิซให้หัวข้อนี้</h1>
-        <div className="rounded-2xl bg-white border border-stone-200 p-4 space-y-1">
-          <p className="font-semibold">{quizFor.title}</p>
-          <p className="text-xs text-stone-500">
+      <div className="page-in space-y-4">
+        <h1 className="text-[22px] font-bold tracking-tight">เพิ่มควิซให้หัวข้อนี้</h1>
+        <div className="rounded-2xl border border-line bg-surface p-4">
+          <p className="text-[16px] font-semibold leading-snug">{quizFor.title}</p>
+          <p className="mt-1 text-[12px] text-ink-3">
             {quizFor.subject}
             {existing > 0 && ` · มีควิซอยู่แล้ว ${existing} ข้อ (ชุดใหม่จะแทนที่ของเดิม)`}
           </p>
         </div>
         {quizFor.notes.trim().length < 40 ? (
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+          <div className="rounded-xl border border-warn-line bg-warn-soft px-3 py-2.5 text-[13px] leading-relaxed text-warn">
             หัวข้อนี้ยังไม่มีโน้ต (หรือสั้นเกินไป) — ต้องมีเนื้อหาก่อนถึงจะออกข้อสอบได้
             กลับไปเพิ่มโน้ตในหัวข้อนี้ก่อน
           </div>
@@ -89,7 +132,7 @@ export default function TopicsPage() {
         <button
           type="button"
           onClick={() => setQuizFor(null)}
-          className="w-full py-2 text-sm text-stone-400"
+          className="press w-full py-2 text-[13px] text-ink-3"
         >
           ← กลับไปคลัง
         </button>
@@ -105,160 +148,166 @@ export default function TopicsPage() {
   const archived = topics.filter((t) => t.archived).filter((t) => matchesSearch(t, q));
 
   return (
-    <div className="space-y-4">
+    <div className="page-in space-y-4">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-bold">คลังหัวข้อ</h1>
-        <span className="text-sm text-stone-400">{active.length} หัวข้อ</span>
+        <h1 className="text-[22px] font-bold tracking-tight">คลังหัวข้อ</h1>
+        <span className="tnum text-[13px] text-ink-3">{active.length} หัวข้อ</span>
       </header>
 
       {topics.length > 0 && (
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ค้นหาชื่อหัวข้อ วิชา หรือเนื้อหาโน้ต"
-          className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-        />
+        <div className="relative">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ค้นหาชื่อหัวข้อ วิชา หรือเนื้อหาโน้ต"
+            className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-3 text-[14px] text-ink placeholder:text-ink-3 focus:border-accent focus:outline-none"
+          />
+        </div>
       )}
 
       {topics.length === 0 && (
-        <p className="text-sm text-stone-400 text-center py-10">
+        <p className="py-12 text-center text-[13px] text-ink-3">
           ยังไม่มีหัวข้อ — เริ่มที่แท็บ &quot;เพิ่มหัวข้อ&quot;
         </p>
       )}
 
       {topics.length > 0 && q && active.length === 0 && archived.length === 0 && (
-        <p className="text-sm text-stone-400 text-center py-10">
+        <p className="py-12 text-center text-[13px] text-ink-3">
           ไม่พบหัวข้อที่ตรงกับ &quot;{search.trim()}&quot;
         </p>
       )}
 
-      <ul className="space-y-2">
+      <ul className="space-y-1.5">
         {active.map((t) => {
           const due = dueLabel(t, today);
           const open = expanded === t.id;
+          const quizCount = quizCounts?.get(t.id!) ?? 0;
           return (
             <li
               key={t.id}
-              className="rounded-xl bg-white border border-stone-200 px-3 py-2.5"
+              className="overflow-hidden rounded-xl border border-line bg-surface px-3 py-2.5"
             >
               <button
                 type="button"
                 className="w-full text-left"
                 onClick={() => setExpanded(open ? null : t.id!)}
+                aria-expanded={open}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium leading-snug flex-1">
+                  <span className="flex-1 text-[14px] font-medium leading-snug">
                     {t.title}
                   </span>
-                  <span className={`text-xs shrink-0 ${due.cls}`}>{due.text}</span>
+                  <span className={`shrink-0 text-[11px] ${due.cls}`}>{due.text}</span>
                 </div>
-                <div className="flex items-center gap-1.5 mt-1 text-[11px] flex-wrap">
-                  <span className={`px-1.5 py-0.5 rounded-full ${TRACK_CHIP[t.examTrack]}`}>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                  <span className={`rounded-md px-1.5 py-0.5 font-semibold ${TRACK[t.examTrack]}`}>
                     {EXAM_LABELS[t.examTrack]}
                   </span>
-                  <span className="px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">
+                  <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-ink-2">
                     {t.subject}
                   </span>
-                  {(quizCounts?.get(t.id!) ?? 0) > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">
-                      ควิซ {quizCounts!.get(t.id!)} ข้อ
+                  {quizCount > 0 && (
+                    <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-ink-2">
+                      ควิซ {quizCount} ข้อ
                     </span>
                   )}
-                  <span className="text-stone-400">
+                  <span className="tnum text-ink-3">
                     ทุก {t.intervalDays} วัน · ease {t.ease.toFixed(2)}
                     {t.lapseCount > 0 && ` · ลืม ${t.lapseCount}`}
                   </span>
                 </div>
               </button>
 
-              {open && (
-                <div className="mt-2 pt-2 border-t border-stone-100 space-y-2">
-                  {t.notes && (
-                    <p className="text-xs text-stone-600 whitespace-pre-wrap">{t.notes}</p>
-                  )}
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setQuizFor(t)}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-teal-50 text-teal-700 font-medium"
-                    >
-                      {(quizCounts?.get(t.id!) ?? 0) > 0 ? "สร้างควิซใหม่" : "+ เพิ่มควิซ"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setArchived(t.id!, true)}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-stone-100 text-stone-600"
-                    >
-                      เก็บเข้ากรุ
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`ลบ "${t.title}" ถาวร?`)) void deleteTopic(t.id!);
-                      }}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600"
-                    >
-                      ลบ
-                    </button>
+              <div className="collapse" data-open={open}>
+                <div>
+                  <div className="mt-2.5 space-y-2.5 border-t border-line pt-2.5">
+                    {t.notes && (
+                      <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-ink-2">
+                        {t.notes}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setQuizFor(t)}
+                        className="press rounded-lg bg-accent-soft px-3 py-1.5 text-[11px] font-semibold text-accent"
+                      >
+                        {quizCount > 0 ? "สร้างควิซใหม่" : "เพิ่มควิซ"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setArchived(t.id!, true)}
+                        className="press rounded-lg bg-surface-2 px-3 py-1.5 text-[11px] font-medium text-ink-2"
+                      >
+                        เก็บเข้ากรุ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`ลบ "${t.title}" ถาวร?`)) void deleteTopic(t.id!);
+                        }}
+                        className="press rounded-lg bg-danger-soft px-3 py-1.5 text-[11px] font-medium text-danger"
+                      >
+                        ลบ
+                      </button>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </li>
           );
         })}
       </ul>
 
       {archived.length > 0 && (
-        <details className="pt-2">
-          <summary className="text-sm text-stone-400 cursor-pointer">
-            ในกรุ ({archived.length})
-          </summary>
-          <ul className="mt-2 space-y-2">
+        <Section title={`ในกรุ (${archived.length})`}>
+          <ul className="space-y-1.5">
             {archived.map((t) => (
               <li
                 key={t.id}
-                className="rounded-xl bg-stone-100 px-3 py-2.5 flex items-center justify-between"
+                className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2.5"
               >
-                <span className="text-sm text-stone-500">{t.title}</span>
+                <span className="text-[13px] text-ink-2">{t.title}</span>
                 <button
                   type="button"
                   onClick={() => setArchived(t.id!, false)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-white text-stone-600 border border-stone-200"
+                  className="press shrink-0 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-medium text-ink-2"
                 >
                   เอากลับมา
                 </button>
               </li>
             ))}
           </ul>
-        </details>
+        </Section>
       )}
 
-      <details className="pt-2">
-        <summary className="text-sm text-stone-400 cursor-pointer">
-          พยากรณ์โหลด 30 วัน
-        </summary>
-        <div className="mt-3 rounded-xl bg-white border border-stone-200 p-3">
+      <Section title="พยากรณ์โหลด 30 วัน">
+        <div className="rounded-xl border border-line bg-surface p-3">
           <LoadForecastChart />
         </div>
-      </details>
+      </Section>
 
-      <details className="pt-2">
-        <summary className="text-sm text-stone-400 cursor-pointer">
-          เพิ่มลงปฏิทิน
-        </summary>
-        <div className="mt-3">
-          <CalendarExport />
-        </div>
-      </details>
+      <Section title="เพิ่มลงปฏิทิน">
+        <CalendarExport />
+      </Section>
 
-      <details className="pt-2">
-        <summary className="text-sm text-stone-400 cursor-pointer">
-          สำรอง / ย้ายข้อมูล
-        </summary>
-        <div className="mt-3">
-          <BackupPanel />
-        </div>
-      </details>
+      <Section title="สำรอง / ย้ายข้อมูล">
+        <BackupPanel />
+      </Section>
     </div>
   );
 }

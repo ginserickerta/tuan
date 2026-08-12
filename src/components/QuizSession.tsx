@@ -22,6 +22,8 @@ const BLOOM_LABEL: Record<string, string> = {
   analyze: "วิเคราะห์",
 };
 
+const CHOICE_LETTER = ["ก", "ข", "ค", "ง"];
+
 interface Served {
   q: QuizQuestion;
   stem: string;
@@ -87,82 +89,98 @@ export default function QuizSession({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between text-[11px] text-stone-400">
-        <span>
-          ข้อ {idx + 1}/{served.length} · ระดับ {cur.q.difficulty} ·{" "}
-          {BLOOM_LABEL[cur.q.bloom]}
+      <div className="flex items-center justify-between text-[11px] text-ink-3">
+        <span className="flex items-center gap-1.5">
+          {/* progress as pips, not a number the eye has to parse */}
+          <span className="flex gap-1">
+            {served.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1 w-4 rounded-full transition-colors duration-[180ms] ${
+                  i < idx ? "bg-accent" : i === idx ? "bg-accent/50" : "bg-line-strong"
+                }`}
+              />
+            ))}
+          </span>
+          <span className="tnum">ระดับ {cur.q.difficulty}</span>
+          <span>· {BLOOM_LABEL[cur.q.bloom]}</span>
         </span>
-        <button type="button" onClick={onDone} className="underline">
+        <button type="button" onClick={onDone} className="press text-ink-3 underline">
           ข้ามควิซ
         </button>
       </div>
 
-      <div className="text-sm font-medium leading-relaxed">
-        <MathText text={cur.stem} />
-      </div>
-
-      {isMcq && (
-        <div className="space-y-1.5">
-          {cur.choices.map((c, i) => {
-            const isCorrect = revealed && i === cur.q.correctIndex;
-            const isWrongPick = revealed && picked === i && i !== cur.q.correctIndex;
-            return (
-              <button
-                key={i}
-                type="button"
-                disabled={revealed}
-                onClick={() => {
-                  setPicked(i);
-                  setRevealed(true);
-                }}
-                className={`w-full text-left rounded-xl border px-3 py-2 text-sm ${
-                  isCorrect
-                    ? "border-teal-500 bg-teal-50"
-                    : isWrongPick
-                      ? "border-red-400 bg-red-50"
-                      : "border-stone-200 bg-white active:bg-stone-50"
-                }`}
-              >
-                <span className="text-stone-400 mr-1.5">
-                  {["ก", "ข", "ค", "ง"][i]}.
-                </span>
-                <MathText text={c} />
-              </button>
-            );
-          })}
+      <div key={idx} className="rise-in space-y-3">
+        <div className="text-[15px] font-medium leading-relaxed">
+          <MathText text={cur.stem} />
         </div>
-      )}
 
-      {!isMcq && !revealed && (
-        <button
-          type="button"
-          onClick={() => setRevealed(true)}
-          className="w-full rounded-xl border border-dashed border-stone-300 py-2.5 text-sm text-stone-500 active:bg-stone-100"
-        >
-          ✍️ คิดคำตอบก่อน แล้วกดดูเฉลย
-        </button>
-      )}
+        {isMcq && (
+          <div className="stagger space-y-1.5">
+            {cur.choices.map((c, i) => {
+              const isCorrect = revealed && i === cur.q.correctIndex;
+              const isWrongPick =
+                revealed && picked === i && i !== cur.q.correctIndex;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={revealed}
+                  onClick={() => {
+                    setPicked(i);
+                    setRevealed(true);
+                  }}
+                  className={`press w-full rounded-xl border px-3 py-2.5 text-left text-[14px] ${
+                    isCorrect
+                      ? "border-alevel bg-alevel-soft text-alevel"
+                      : isWrongPick
+                        ? "border-danger-line bg-danger-soft text-danger"
+                        : "border-line bg-surface"
+                  }`}
+                >
+                  <span
+                    className={`mr-1.5 ${isCorrect || isWrongPick ? "opacity-70" : "text-ink-3"}`}
+                  >
+                    {CHOICE_LETTER[i]}.
+                  </span>
+                  <MathText text={c} />
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-      {revealed && (
-        <div className="rounded-xl bg-stone-50 border border-stone-200 p-3 space-y-1.5">
-          <p className="text-sm">
-            <span className="font-semibold text-teal-700">เฉลย: </span>
-            <MathText text={cur.answer} />
-          </p>
-          {cur.q.explanation && (
-            <p className="text-xs text-stone-600">
-              <MathText text={cur.q.explanation} />
-            </p>
-          )}
+        {!isMcq && !revealed && (
           <button
             type="button"
-            onClick={next}
-            className="w-full mt-1 rounded-xl bg-teal-600 text-white py-2 text-sm font-medium"
+            onClick={() => setRevealed(true)}
+            className="press w-full rounded-xl border border-dashed border-line-strong py-2.5 text-[13px] text-ink-2"
           >
-            {idx + 1 >= served.length ? "จบควิซ → ให้คะแนนตัวเอง" : "ข้อถัดไป →"}
+            คิดคำตอบในใจก่อน แล้วกดดูเฉลย
           </button>
-        </div>
-      )}
+        )}
+
+        {revealed && (
+          <div className="rise-in space-y-2 rounded-xl border border-line bg-surface-2 p-3">
+            <p className="text-[14px]">
+              <span className="font-semibold text-alevel">เฉลย: </span>
+              <MathText text={cur.answer} />
+            </p>
+            {cur.q.explanation && (
+              <p className="text-[12px] leading-relaxed text-ink-2">
+                <MathText text={cur.q.explanation} />
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={next}
+              className="press mt-1 w-full rounded-xl bg-accent py-2.5 text-[13px] font-semibold text-accent-ink"
+            >
+              {idx + 1 >= served.length ? "จบควิซ → ให้คะแนนตัวเอง" : "ข้อถัดไป"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -18,13 +18,29 @@ const TYPE_TH: Record<string, string> = {
   short: "ตอบสั้น",
   numeric: "คำนวณ",
 };
+const CHOICE_LETTER = ["ก", "ข", "ค", "ง"];
+
+/** Numbered step header — this flow genuinely is a sequence, so it's numbered. */
+function Step({ n, title, desc }: { n: number; title: string; desc: string }) {
+  return (
+    <div className="flex items-baseline gap-2.5">
+      <span className="tnum grid h-5 w-5 shrink-0 place-items-center rounded-md bg-accent text-[11px] font-bold text-accent-ink">
+        {n}
+      </span>
+      <div>
+        <p className="text-[13px] font-semibold">{title}</p>
+        <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">{desc}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function BridgeQuiz({
   meta,
   notes,
   onConfirm,
   onCancel,
-  confirmLabel = "ใช้ควิซชุดนี้ →",
+  confirmLabel = "ใช้ควิซชุดนี้",
 }: {
   meta: QuizRequestMeta;
   notes: string;
@@ -62,71 +78,62 @@ export default function BridgeQuiz({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* ---- step 1: copy the prompt ---- */}
-      <div className="rounded-2xl bg-white border border-stone-200 p-4 space-y-3">
-        <div className="flex items-baseline gap-2">
-          <span className="w-6 h-6 shrink-0 rounded-full bg-teal-600 text-white text-xs grid place-items-center font-bold">
-            1
-          </span>
-          <div>
-            <p className="font-semibold text-sm">คัดลอกคำสั่ง</p>
-            <p className="text-xs text-stone-500">
-              เอาไปวางใน claude.ai (ใช้ Max ที่จ่ายอยู่แล้ว ไม่เสียเงินเพิ่ม)
-            </p>
-          </div>
-        </div>
+      <div className="space-y-3 rounded-xl border border-line bg-surface p-3.5">
+        <Step
+          n={1}
+          title="คัดลอกคำสั่ง"
+          desc="เอาไปวางใน claude.ai (ใช้ Max ที่จ่ายอยู่แล้ว ไม่เสียเงินเพิ่ม)"
+        />
 
         <button
           type="button"
-          onClick={copyPrompt}
-          className="w-full rounded-xl bg-teal-600 text-white py-2.5 text-sm font-semibold"
+          onClick={() => void copyPrompt()}
+          className="press w-full rounded-xl bg-accent py-2.5 text-[13px] font-semibold text-accent-ink"
         >
-          {copied ? "✓ คัดลอกแล้ว" : "📋 คัดลอกคำสั่ง"}
+          {copied ? "คัดลอกแล้ว" : "คัดลอกคำสั่ง"}
         </button>
 
-        <div className="flex gap-2 text-xs">
+        <div className="flex gap-2">
           <a
             href="https://claude.ai/new"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 text-center rounded-lg border border-stone-300 py-2 text-stone-600"
+            className="press flex-1 rounded-lg border border-line py-2 text-center text-[12px] font-medium text-ink-2"
           >
             เปิด claude.ai ↗
           </a>
           <button
             type="button"
             onClick={() => setShowPrompt(!showPrompt)}
-            className="flex-1 rounded-lg border border-stone-300 py-2 text-stone-600"
+            aria-expanded={showPrompt}
+            className="press flex-1 rounded-lg border border-line py-2 text-[12px] font-medium text-ink-2"
           >
             {showPrompt ? "ซ่อนคำสั่ง" : "ดู/คัดลอกเอง"}
           </button>
         </div>
 
-        {showPrompt && (
-          <textarea
-            readOnly
-            value={prompt}
-            rows={8}
-            onFocus={(e) => e.currentTarget.select()}
-            className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2 text-[11px] font-mono"
-          />
-        )}
+        <div className="collapse" data-open={showPrompt}>
+          <div>
+            <textarea
+              readOnly
+              value={prompt}
+              rows={8}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 font-mono text-[11px] leading-relaxed text-ink-2"
+            />
+          </div>
+        </div>
       </div>
 
       {/* ---- step 2: paste the answer back ---- */}
-      <div className="rounded-2xl bg-white border border-stone-200 p-4 space-y-3">
-        <div className="flex items-baseline gap-2">
-          <span className="w-6 h-6 shrink-0 rounded-full bg-teal-600 text-white text-xs grid place-items-center font-bold">
-            2
-          </span>
-          <div>
-            <p className="font-semibold text-sm">วางคำตอบกลับมา</p>
-            <p className="text-xs text-stone-500">
-              คัดลอก JSON ที่ Claude ตอบมาทั้งบล็อก แล้ววางตรงนี้ (มีข้อความอื่นปนมาก็ได้)
-            </p>
-          </div>
-        </div>
+      <div className="space-y-3 rounded-xl border border-line bg-surface p-3.5">
+        <Step
+          n={2}
+          title="วางคำตอบกลับมา"
+          desc="คัดลอก JSON ที่ Claude ตอบมาทั้งบล็อก แล้ววางตรงนี้ (มีข้อความอื่นปนมาก็ได้)"
+        />
 
         <textarea
           value={pasted}
@@ -138,24 +145,24 @@ export default function BridgeQuiz({
           }}
           rows={5}
           placeholder='{ "questions": [ ... ] }'
-          className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-mono"
+          className="w-full rounded-xl border border-line bg-surface px-3 py-2 font-mono text-[12px] leading-relaxed text-ink placeholder:text-ink-3 focus:border-accent focus:outline-none"
         />
         <button
           type="button"
           disabled={!pasted.trim()}
           onClick={checkPaste}
-          className="w-full rounded-xl bg-stone-800 disabled:bg-stone-300 text-white py-2.5 text-sm font-semibold"
+          className="press w-full rounded-xl bg-ink py-2.5 text-[13px] font-semibold text-bg disabled:bg-line-strong disabled:text-ink-3"
         >
           ตรวจและแปลงเป็นควิซ
         </button>
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+          <div className="rise-in rounded-lg border border-danger-line bg-danger-soft px-3 py-2 text-[12px] leading-relaxed text-danger">
             {error}
           </div>
         )}
         {warnings.length > 0 && (
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 space-y-0.5">
+          <div className="rise-in space-y-1 rounded-lg border border-warn-line bg-warn-soft px-3 py-2 text-[12px] leading-relaxed text-warn">
             <p className="font-semibold">แก้ให้อัตโนมัติแล้ว:</p>
             {warnings.map((w, i) => (
               <p key={i}>• {w}</p>
@@ -166,52 +173,52 @@ export default function BridgeQuiz({
 
       {/* ---- step 3: preview ---- */}
       {questions && questions.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-semibold">
+        <div className="rise-in space-y-2">
+          <p className="text-[13px] font-semibold">
             ได้ {questions.length} ข้อ — เช็กความถูกต้อง ลบข้อที่ไม่ดีได้
           </p>
           <ul className="space-y-2">
             {questions.map((q, i) => (
               <li
                 key={i}
-                className="rounded-xl bg-white border border-stone-200 p-3 space-y-1.5"
+                className="space-y-2 rounded-xl border border-line bg-surface p-3"
               >
                 <div className="flex items-center gap-1.5 text-[10px]">
-                  <span className="px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">
+                  <span className="tnum rounded-md bg-surface-2 px-1.5 py-0.5 text-ink-2">
                     ระดับ {q.difficulty}
                   </span>
-                  <span className="px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">
+                  <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-ink-2">
                     {BLOOM_TH[q.bloom]}
                   </span>
-                  <span className="px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">
+                  <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-ink-2">
                     {TYPE_TH[q.type]}
                     {q.variants.length > 0 && ` +${q.variants.length} ชุดตัวเลข`}
                   </span>
                   <button
                     type="button"
                     onClick={() => setQuestions(questions.filter((_, j) => j !== i))}
-                    className="ml-auto text-red-500 px-1"
+                    className="press ml-auto px-1 text-danger"
                   >
                     ลบ
                   </button>
                 </div>
-                <div className="text-sm">
+                <div className="text-[14px] leading-relaxed">
                   <MathText text={q.stem} />
                 </div>
                 {q.type === "mcq" && (
-                  <ol className="text-xs text-stone-500 space-y-0.5">
+                  <ol className="space-y-1 text-[12px] text-ink-2">
                     {q.choices.map((c, j) => (
                       <li
                         key={j}
-                        className={j === q.correctIndex ? "text-teal-700 font-medium" : ""}
+                        className={j === q.correctIndex ? "font-medium text-alevel" : ""}
                       >
-                        {["ก", "ข", "ค", "ง"][j]}. <MathText text={c} />
+                        {CHOICE_LETTER[j]}. <MathText text={c} />
                       </li>
                     ))}
                   </ol>
                 )}
-                <p className="text-xs text-stone-500">
-                  <b className="text-teal-700">เฉลย:</b> <MathText text={q.answer} />
+                <p className="text-[12px] text-ink-2">
+                  <b className="text-alevel">เฉลย:</b> <MathText text={q.answer} />
                 </p>
               </li>
             ))}
@@ -223,7 +230,7 @@ export default function BridgeQuiz({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 rounded-xl border border-stone-300 py-3 text-sm text-stone-600"
+          className="press flex-1 rounded-xl border border-line py-3 text-[13px] font-medium text-ink-2"
         >
           ข้ามควิซ
         </button>
@@ -231,7 +238,7 @@ export default function BridgeQuiz({
           type="button"
           disabled={!questions || questions.length === 0}
           onClick={() => questions && onConfirm(questions)}
-          className="flex-1 rounded-xl bg-teal-600 disabled:bg-stone-300 text-white py-3 text-sm font-semibold"
+          className="press flex-1 rounded-xl bg-accent py-3 text-[13px] font-semibold text-accent-ink disabled:bg-line-strong disabled:text-ink-3"
         >
           {confirmLabel}
         </button>

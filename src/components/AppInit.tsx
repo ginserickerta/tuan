@@ -33,7 +33,7 @@ export default function AppInit() {
 
   if (!offline) return null;
   return (
-    <div className="sticky top-0 z-40 bg-stone-800 text-stone-100 text-[11px] text-center py-1">
+    <div className="drop-in sticky top-0 z-40 bg-ink py-1 text-center text-[11px] text-bg">
       ออฟไลน์ — ทบทวนต่อได้ ข้อมูลบันทึกในเครื่อง
     </div>
   );

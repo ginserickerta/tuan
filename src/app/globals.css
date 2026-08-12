@@ -1,11 +1,264 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   ทวน — design tokens
+   Two exam tracks carry the only two brand hues, because on this surface color
+   is data: violet = TGAT/TPAT, teal = A-Level. Violet doubles as the single UI
+   accent. Amber and red are semantic warning/critical only — never decoration.
+   Light and dark are both first-class; iOS switches on its own schedule and
+   this app is used both after class and at 1am.
+   ========================================================================== */
+
+:root {
+  /* ground */
+  --bg: #FAFAFB;
+  --surface: #FFFFFF;
+  --surface-2: #F4F4F7;
+  --line: #E7E6EE;
+  --line-strong: #D6D4E0;
+
+  /* ink — neutrals biased toward the violet accent, never pure grey */
+  --ink: #17161C;
+  --ink-2: #55525F;
+  --ink-3: #8B8797;
+
+  /* accent = TGAT hue, used for primary actions and focus */
+  --accent: #6247E5;
+  --accent-hover: #5439D6;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #EFEBFF;
+  --accent-line: #D9D0FF;
+
+  /* exam tracks */
+  --tgat: #6247E5;
+  --tgat-soft: #EFEBFF;
+  --alevel: #0B8F7D;
+  --alevel-soft: #DFF3EF;
+
+  /* semantic */
+  --danger: #C8322F;
+  --danger-soft: #FDEBEA;
+  --danger-line: #F5C9C7;
+  --warn: #94620A;
+  --warn-soft: #FCF2DC;
+  --warn-line: #EEDCB0;
+
+  --shadow-card: 0 1px 2px rgba(23, 22, 28, .04);
+  --shadow-lift: 0 4px 16px -6px rgba(23, 22, 28, .12);
+
+  /* motion — one scale, used everywhere */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-press: 130ms;
+  --dur-fast: 180ms;
+  --dur-base: 220ms;
+  --dur-slow: 300ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E0D12;
+    --surface: #17161D;
+    --surface-2: #1E1C26;
+    --line: #2A2833;
+    --line-strong: #3A3746;
+
+    --ink: #ECEAF2;
+    --ink-2: #A8A4B5;
+    --ink-3: #75717F;
+
+    --accent: #9E8BFF;
+    --accent-hover: #B0A0FF;
+    --accent-ink: #14121C;
+    --accent-soft: #241F3A;
+    --accent-line: #3B3358;
+
+    --tgat: #9E8BFF;
+    --tgat-soft: #241F3A;
+    --alevel: #45CBB3;
+    --alevel-soft: #11322D;
+
+    --danger: #FF8A85;
+    --danger-soft: #351C1C;
+    --danger-line: #4E2A29;
+    --warn: #E0B45C;
+    --warn-soft: #2F2616;
+    --warn-line: #453720;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow-lift: 0 8px 24px -10px rgba(0, 0, 0, .6);
+  }
+}
+
 @theme inline {
-  --font-sans: var(--font-noto-thai), "Noto Sans Thai", system-ui, sans-serif;
+  --font-sans: var(--font-anuphan), "Noto Sans Thai", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+
+  --color-tgat: var(--tgat);
+  --color-tgat-soft: var(--tgat-soft);
+  --color-alevel: var(--alevel);
+  --color-alevel-soft: var(--alevel-soft);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
+}
+
+html {
+  background: var(--bg);
+  color-scheme: light dark;
 }
 
 body {
   font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--ink);
   /* keep iOS safe-area for the fixed bottom nav */
   padding-bottom: env(safe-area-inset-bottom);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Digits that sit in columns (minutes, day counts, intervals) must not jitter
+   as they change — this is why the mono face is here at all. */
+.tnum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* One visible focus treatment for the whole app. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   Motion
+   Every animation below is transform/opacity only, under 300ms, ease-out.
+   -------------------------------------------------------------------------- */
+
+/* Press feedback on anything tappable. Touch-safe: :active, not :hover. */
+.press {
+  transition: transform var(--dur-press) var(--ease-out),
+              background-color var(--dur-press) var(--ease-out),
+              border-color var(--dur-press) var(--ease-out),
+              color var(--dur-press) var(--ease-out);
+}
+.press:active {
+  transform: scale(0.975);
+}
+
+/* The queue card entering after a grade. Keyed by topic id, so this fires
+   exactly once per topic — the signature moment of the app. */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-in {
+  animation: card-in var(--dur-base) var(--ease-out) both;
+}
+
+/* The outgoing card, driven by a data attribute during the 140ms hand-off. */
+.card-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
+}
+
+/* Content appearing in place: quiz reveal, notes, inline panels. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise-in {
+  animation: rise-in var(--dur-base) var(--ease-out) both;
+}
+
+/* Banners and badges that appear without the user asking. */
+@keyframes drop-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.drop-in {
+  animation: drop-in var(--dur-base) var(--ease-out) both;
+}
+
+/* Page content on route change — opacity only; this is seen dozens of times
+   a day and anything more becomes friction. */
+@keyframes page-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-in {
+  animation: page-in 160ms var(--ease-out) both;
+}
+
+/* Staggered list entry (quiz choices, forecast rows). */
+.stagger > * {
+  animation: rise-in var(--dur-base) var(--ease-out) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+
+/* Accordion via grid-template-rows: no height animation, no layout thrash. */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-base) var(--ease-out);
+}
+.collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.collapse > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Progress fills scale rather than resize. */
+.fill {
+  transform-origin: left center;
+  transition: transform var(--dur-slow) var(--ease-out),
+              background-color var(--dur-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Fewer and gentler, not zero: keep the fades that explain what changed,
+     drop every position change. */
+  .card-in, .rise-in, .drop-in, .stagger > * {
+    animation: page-in 160ms var(--ease-out) both;
+  }
+  .card-leaving { transform: none; }
+  .press:active { transform: none; }
+  .collapse { transition-duration: 1ms; }
+  .fill { transition-duration: 1ms; }
 }

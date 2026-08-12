@@ -32,18 +32,18 @@ export default function BackupReminder({ topicCount }: { topicCount: number }) {
   }
 
   return (
-    <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 flex items-center justify-between gap-2">
-      <span>
+    <div className="drop-in flex items-center justify-between gap-3 rounded-xl border border-warn-line bg-warn-soft px-3 py-2.5">
+      <p className="text-[12px] leading-snug text-warn">
         {daysSince === null
-          ? "ยังไม่เคยสำรองข้อมูลเลย"
-          : `สำรองข้อมูลล่าสุดเมื่อ ${daysSince} วันก่อน`}{" "}
+          ? "ยังไม่เคยสำรองข้อมูล"
+          : `สำรองข้อมูลล่าสุด ${daysSince} วันก่อน`}{" "}
         — เผื่อเบราว์เซอร์ล้างข้อมูลทิ้ง
-      </span>
+      </p>
       <button
         type="button"
         disabled={busy}
         onClick={() => void onBackup()}
-        className="shrink-0 rounded-lg bg-amber-600 disabled:bg-amber-300 text-white px-2.5 py-1.5 text-[11px] font-semibold"
+        className="press shrink-0 rounded-lg border border-warn-line px-2.5 py-1.5 text-[11px] font-semibold text-warn disabled:opacity-50"
       >
         {busy ? "…" : "สำรองตอนนี้"}
       </button>

@@ -43,10 +43,11 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border ${
+      aria-pressed={active}
+      className={`press rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold ${
         active
-          ? "border-teal-500 bg-teal-50 text-teal-700"
-          : "border-stone-200 bg-white text-stone-500"
+          ? "border-accent bg-accent-soft text-accent"
+          : "border-line bg-surface text-ink-2"
       }`}
     >
       {children}
@@ -81,7 +82,8 @@ export default function CalendarExport() {
   const topics = useLiveQuery(() => db.topics.toArray(), []);
   const days = topics ? forecast(topics, todayISO(), settings.horizonDays) : [];
   const workDays = days.filter((d) => d.count > 0);
-  const isLocal = origin.startsWith("http://localhost") || origin.startsWith("http://127.");
+  const isLocal =
+    origin.startsWith("http://localhost") || origin.startsWith("http://127.");
 
   /** Persist settings; re-publish immediately when the feed is live. */
   async function update(patch: Partial<CalendarSettings>) {
@@ -118,7 +120,8 @@ export default function CalendarExport() {
   }
 
   async function turnOff() {
-    if (!confirm("ปิดปฏิทินอัตโนมัติ? ปฏิทินที่สมัครไว้จะหยุดอัปเดตและขึ้น error")) return;
+    if (!confirm("ปิดปฏิทินอัตโนมัติ? ปฏิทินที่สมัครไว้จะหยุดอัปเดตและขึ้น error"))
+      return;
     setBusy(true);
     await disableCalendar();
     setToken(null);
@@ -141,17 +144,17 @@ export default function CalendarExport() {
   return (
     <div className="space-y-4">
       {/* ---- automatic subscription ---- */}
-      <div className="rounded-2xl bg-white border border-stone-200 p-4 space-y-3">
+      <div className="space-y-3 rounded-xl border border-line bg-surface p-3.5">
         <div>
-          <p className="font-semibold text-sm">ปฏิทินอัตโนมัติ (แนะนำ)</p>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-[13px] font-semibold">ปฏิทินอัตโนมัติ</p>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">
             สมัครครั้งเดียว แล้วปฏิทินจะดึงตารางใหม่เองทุกครั้งที่คุณกดคะแนน
             ไม่ต้องดาวน์โหลดอะไรอีก
           </p>
         </div>
 
         {isLocal && (
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+          <div className="rounded-lg border border-warn-line bg-warn-soft px-3 py-2 text-[12px] leading-relaxed text-warn">
             ตอนนี้เปิดจาก localhost — ปฏิทินบนมือถือเข้าถึงเครื่องนี้ไม่ได้
             ให้เปิดแอปจากเว็บจริงก่อนแล้วค่อยกดเปิดใช้
           </div>
@@ -162,30 +165,30 @@ export default function CalendarExport() {
             type="button"
             disabled={busy || isLocal}
             onClick={() => void enable()}
-            className="w-full rounded-xl bg-teal-600 disabled:bg-stone-300 text-white py-2.5 text-sm font-semibold"
+            className="press w-full rounded-xl bg-accent py-2.5 text-[13px] font-semibold text-accent-ink disabled:bg-line-strong disabled:text-ink-3"
           >
             {busy ? "กำลังเปิด…" : "เปิดใช้ปฏิทินอัตโนมัติ"}
           </button>
         ) : (
-          <div className="space-y-2">
+          <div className="rise-in space-y-2">
             <a
               href={webcalUrl(token, origin)}
-              className="block w-full text-center rounded-xl bg-teal-600 text-white py-2.5 text-sm font-semibold"
+              className="press block w-full rounded-xl bg-accent py-2.5 text-center text-[13px] font-semibold text-accent-ink"
             >
-              📅 เพิ่มลงปฏิทิน iPhone / Mac
+              เพิ่มลงปฏิทิน iPhone / Mac
             </a>
             <button
               type="button"
               onClick={() => void copyLink()}
-              className="w-full rounded-xl border border-stone-300 py-2 text-xs font-medium text-stone-600"
+              className="press w-full rounded-xl border border-line py-2 text-[12px] font-medium text-ink-2"
             >
-              {copied ? "✓ คัดลอกลิงก์แล้ว" : "คัดลอกลิงก์ (สำหรับ Google Calendar)"}
+              {copied ? "คัดลอกลิงก์แล้ว" : "คัดลอกลิงก์ (สำหรับ Google Calendar)"}
             </button>
-            <p className="text-[11px] text-stone-400 break-all select-all">
+            <p className="tnum select-all break-all text-[10px] leading-relaxed text-ink-3">
               {feedUrl(token, origin)}
             </p>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-stone-400">
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="text-[11px] text-ink-3">
                 {lastPublished
                   ? `อัปเดตล่าสุด ${new Date(lastPublished).toLocaleString("th-TH", {
                       day: "numeric",
@@ -199,7 +202,7 @@ export default function CalendarExport() {
                 type="button"
                 disabled={busy}
                 onClick={() => void turnOff()}
-                className="text-[11px] text-red-500"
+                className="press text-[11px] text-danger"
               >
                 ปิดใช้งาน
               </button>
@@ -207,9 +210,9 @@ export default function CalendarExport() {
           </div>
         )}
 
-        {note && <p className="text-xs text-teal-700">{note}</p>}
+        {note && <p className="text-[12px] text-accent">{note}</p>}
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+          <div className="rise-in rounded-lg border border-danger-line bg-danger-soft px-3 py-2 text-[12px] leading-relaxed text-danger">
             {error}
           </div>
         )}
@@ -218,11 +221,17 @@ export default function CalendarExport() {
       {/* ---- shared options ---- */}
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium mb-1">เวลาที่จะทบทวน</label>
+          <label className="mb-1.5 block text-[12px] font-semibold">
+            เวลาที่จะทบทวน
+          </label>
           <div className="flex flex-wrap gap-1.5">
             {HOURS.map((h) => (
-              <Chip key={h} active={settings.hour === h} onClick={() => void update({ hour: h })}>
-                {String(h).padStart(2, "0")}:00
+              <Chip
+                key={h}
+                active={settings.hour === h}
+                onClick={() => void update({ hour: h })}
+              >
+                <span className="tnum">{String(h).padStart(2, "0")}:00</span>
               </Chip>
             ))}
           </div>
@@ -230,7 +239,9 @@ export default function CalendarExport() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium mb-1">ล่วงหน้ากี่วัน</label>
+            <label className="mb-1.5 block text-[12px] font-semibold">
+              ล่วงหน้ากี่วัน
+            </label>
             <div className="flex gap-1.5">
               {HORIZONS.map((d) => (
                 <Chip
@@ -238,13 +249,13 @@ export default function CalendarExport() {
                   active={settings.horizonDays === d}
                   onClick={() => void update({ horizonDays: d })}
                 >
-                  {d}
+                  <span className="tnum">{d}</span>
                 </Chip>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">เตือนก่อน</label>
+            <label className="mb-1.5 block text-[12px] font-semibold">เตือนก่อน</label>
             <div className="flex gap-1.5">
               {ALARMS.map((a) => (
                 <Chip
@@ -259,16 +270,16 @@ export default function CalendarExport() {
           </div>
         </div>
 
-        <label className="flex items-start gap-2 text-xs text-stone-600">
+        <label className="flex items-start gap-2.5 text-[12px] text-ink-2">
           <input
             type="checkbox"
             checked={settings.includeTitles}
             onChange={(e) => void update({ includeTitles: e.target.checked })}
-            className="mt-0.5"
+            className="mt-0.5 accent-[var(--accent)]"
           />
           <span>
             ใส่ชื่อหัวข้อในปฏิทินด้วย
-            <span className="block text-[11px] text-stone-400">
+            <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-3">
               ปิดไว้ถ้าไม่อยากให้ชื่อเรื่องที่เรียนไปอยู่บนเซิร์ฟเวอร์ — จะเห็นแค่
               &quot;ทวน 5 หัวข้อ&quot;
             </span>
@@ -278,18 +289,18 @@ export default function CalendarExport() {
 
       {/* ---- preview ---- */}
       {topics && (
-        <div className="rounded-xl bg-white border border-stone-200 p-3">
-          <p className="text-[11px] text-stone-400 mb-1.5">
+        <div className="rounded-xl border border-line bg-surface p-3">
+          <p className="mb-2 text-[11px] text-ink-3">
             ตัวอย่างที่จะได้ ({workDays.length} วันมีคิว จาก {settings.horizonDays} วัน)
           </p>
           {workDays.length === 0 ? (
-            <p className="text-xs text-stone-400">ยังไม่มีหัวข้อให้ทบทวนในช่วงนี้</p>
+            <p className="text-[12px] text-ink-3">ยังไม่มีหัวข้อให้ทบทวนในช่วงนี้</p>
           ) : (
-            <ul className="text-xs text-stone-600 space-y-0.5">
+            <ul className="space-y-1 text-[12px]">
               {workDays.slice(0, 5).map((d) => (
                 <li key={d.date} className="flex justify-between gap-2">
-                  <span>{formatThai(d.date)}</span>
-                  <span className="text-stone-400">
+                  <span className="text-ink-2">{formatThai(d.date)}</span>
+                  <span className="tnum text-ink-3">
                     {d.count} หัวข้อ · ~{d.minutes} น.
                     {d.flashMode && " ⚡"}
                   </span>
@@ -301,38 +312,30 @@ export default function CalendarExport() {
       )}
 
       {/* ---- one-off file ---- */}
-      <details>
-        <summary className="text-xs text-stone-400 cursor-pointer">
+      <div className="space-y-2 border-t border-line pt-3">
+        <button
+          type="button"
+          disabled={workDays.length === 0}
+          onClick={() =>
+            downloadIcs(
+              buildIcs(days, {
+                hour: settings.hour,
+                minute: settings.minute,
+                alarmMinutes: settings.alarmMinutes,
+              }),
+            )
+          }
+          className="press w-full rounded-xl border border-line py-2.5 text-[13px] font-medium text-ink-2 disabled:opacity-40"
+        >
           หรือดาวน์โหลดเป็นไฟล์ .ics (ไม่อัปเดตเอง)
-        </summary>
-        <div className="mt-2 space-y-2">
-          <button
-            type="button"
-            disabled={workDays.length === 0}
-            onClick={() =>
-              downloadIcs(
-                buildIcs(days, {
-                  hour: settings.hour,
-                  minute: settings.minute,
-                  alarmMinutes: settings.alarmMinutes,
-                }),
-              )
-            }
-            className="w-full rounded-xl bg-stone-800 disabled:bg-stone-300 text-white py-2.5 text-sm font-semibold"
-          >
-            ⬇️ ดาวน์โหลดไฟล์ปฏิทิน
-          </button>
-          <p className="text-[11px] text-stone-400">
-            เป็นภาพนิ่งของตารางตอนนี้ ต้องส่งออกใหม่เองเมื่อตารางเปลี่ยน
-            ระบบใช้รหัสเดิมต่อวัน ของเก่าจะถูกทับ ไม่ซ้อนกัน
-          </p>
-        </div>
-      </details>
+        </button>
+      </div>
 
-      <p className="text-[11px] text-stone-400 leading-relaxed">
-        ตารางคำนวณโดยสมมติว่าคุณกด &quot;นึกออก&quot; ทุกครั้ง ถ้าลืมบ่อยกว่านั้นคิวจริงจะหนักกว่า
-        · ปฏิทินอ่านอย่างเดียว ติ๊กว่าทบทวนแล้วต้องกลับมากดในแอป · iPhone ดึงข้อมูลใหม่ทุก
-        15 นาที–1 ชั่วโมง ส่วน Google Calendar ช้ากว่านั้นมาก (หลายชั่วโมง)
+      <p className="text-[11px] leading-relaxed text-ink-3">
+        ตารางคำนวณโดยสมมติว่าคุณกด &quot;นึกออก&quot; ทุกครั้ง
+        ถ้าลืมบ่อยกว่านั้นคิวจริงจะหนักกว่า · ปฏิทินอ่านอย่างเดียว
+        ติ๊กว่าทบทวนแล้วต้องกลับมากดในแอป · iPhone ดึงข้อมูลใหม่ทุก 15 นาที–1 ชั่วโมง
+        ส่วน Google Calendar ช้ากว่านั้นมาก (หลายชั่วโมง)
       </p>
     </div>
   );

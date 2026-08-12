@@ -1,13 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_Thai } from "next/font/google";
+import { Anuphan, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AppInit from "@/components/AppInit";
 
-const notoThai = Noto_Sans_Thai({
-  variable: "--font-noto-thai",
+// Anuphan carries Thai and Latin in one contemporary humanist face; JetBrains
+// Mono exists purely so columns of minutes and day-counts stay aligned.
+const anuphan = Anuphan({
+  variable: "--font-anuphan",
   subsets: ["thai", "latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  variable: "--font-jetbrains",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -32,15 +42,21 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1, // prevent iOS zoom-on-input
-  themeColor: "#0f766e",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FAFAFB" },
+    { media: "(prefers-color-scheme: dark)", color: "#0E0D12" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="th" className={`${notoThai.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-stone-50 text-stone-900">
+    <html
+      lang="th"
+      className={`${anuphan.variable} ${jetbrains.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">
         <AppInit />
-        <main className="flex-1 w-full max-w-lg mx-auto px-4 pt-4 pb-24">
+        <main className="flex-1 w-full max-w-lg mx-auto px-4 pt-5 pb-28">
           {children}
         </main>
         <BottomNav />

@@ -16,43 +16,48 @@ const REVIEW_LABELS: Record<Grade, { label: string; sub: string }> = {
   4: { label: "ง่ายมาก", sub: "" },
 };
 
+// A semantic ramp that lands on the two brand hues at the good end, so the
+// palette stays at four colors total instead of inventing a fifth.
 const COLORS: Record<Grade, string> = {
-  1: "bg-red-50 text-red-700 border-red-200 active:bg-red-100",
-  2: "bg-amber-50 text-amber-700 border-amber-200 active:bg-amber-100",
-  3: "bg-teal-50 text-teal-700 border-teal-200 active:bg-teal-100",
-  4: "bg-sky-50 text-sky-700 border-sky-200 active:bg-sky-100",
+  1: "bg-danger-soft text-danger border-danger-line",
+  2: "bg-warn-soft text-warn border-warn-line",
+  3: "bg-alevel-soft text-alevel border-transparent",
+  4: "bg-accent-soft text-accent border-accent-line",
 };
 
 export default function GradeButtons({
   mode,
   onGrade,
   hints,
+  disabled = false,
 }: {
   mode: "dayZero" | "review";
   onGrade: (g: Grade) => void;
   /** optional per-grade hint line, e.g. next interval preview "→ 3 วัน" */
   hints?: Partial<Record<Grade, string>>;
+  disabled?: boolean;
 }) {
   const labels = mode === "dayZero" ? DAY_ZERO_LABELS : REVIEW_LABELS;
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="grid grid-cols-4 gap-1.5">
       {([1, 2, 3, 4] as Grade[]).map((g) => (
         <button
           key={g}
           type="button"
+          disabled={disabled}
           onClick={() => onGrade(g)}
-          className={`rounded-xl border px-1 py-2.5 text-center transition-colors ${COLORS[g]}`}
+          className={`press rounded-xl border px-1 py-2.5 text-center disabled:opacity-40 ${COLORS[g]}`}
         >
-          <div className="text-sm font-semibold leading-tight">
+          <div className="text-[13px] font-semibold leading-tight">
             {labels[g].label}
           </div>
           {labels[g].sub && (
-            <div className="text-[10px] opacity-70 leading-tight">
+            <div className="text-[10px] leading-tight opacity-70">
               {labels[g].sub}
             </div>
           )}
           {hints?.[g] && (
-            <div className="text-[10px] mt-0.5 opacity-60">{hints[g]}</div>
+            <div className="tnum mt-1 text-[10px] opacity-65">{hints[g]}</div>
           )}
         </button>
       ))}
