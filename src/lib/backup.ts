@@ -3,7 +3,7 @@
 // Until cross-device sync exists, this file is the only thing standing between
 // a cleared browser profile and losing every topic. It doubles as the manual
 // way to move data between the PC and an iPhone: export here, import there.
-import { db } from "./db";
+import { db, setSetting } from "./db";
 import { schedulePublish } from "./calendar/publish";
 import type { QuizQuestion, ReviewLog, Topic } from "./scheduler/types";
 import { todayISO } from "./scheduler/dates";
@@ -55,6 +55,7 @@ export async function downloadBackup(): Promise<BackupCounts> {
   a.remove();
   // revoke late so Safari has time to start the download
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  await setSetting("lastBackupAt", todayISO()); // date only, matches the rest of the app
   return {
     topics: backup.topics.length,
     reviews: backup.reviews.length,

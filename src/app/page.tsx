@@ -13,6 +13,7 @@ import { todayISO, formatThai } from "@/lib/scheduler/dates";
 import { EXAM_LABELS } from "@/lib/scheduler/config";
 import GradeButtons from "@/components/GradeButtons";
 import QuizSession from "@/components/QuizSession";
+import BackupReminder from "@/components/BackupReminder";
 import type { Grade, QuizQuestion } from "@/lib/scheduler/types";
 
 const TRACK_CHIP: Record<string, string> = {
@@ -94,6 +95,8 @@ export default function TodayPage() {
           )}
         </div>
       </header>
+
+      <BackupReminder topicCount={topicCount} />
 
       {/* Mode banners */}
       {plan.flashMode && (

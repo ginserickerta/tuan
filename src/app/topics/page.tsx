@@ -10,6 +10,7 @@ import { EXAM_LABELS } from "@/lib/scheduler/config";
 import BridgeQuiz from "@/components/BridgeQuiz";
 import BackupPanel from "@/components/BackupPanel";
 import CalendarExport from "@/components/CalendarExport";
+import LoadForecastChart from "@/components/LoadForecastChart";
 import type { Topic } from "@/lib/scheduler/types";
 
 const TRACK_CHIP: Record<string, string> = {
@@ -24,10 +25,20 @@ function dueLabel(t: Topic, today: string): { text: string; cls: string } {
   return { text: formatThai(t.dueDate), cls: "text-stone-400" };
 }
 
+function matchesSearch(t: Topic, q: string): boolean {
+  if (!q) return true;
+  return (
+    t.title.toLowerCase().includes(q) ||
+    t.subject.toLowerCase().includes(q) ||
+    t.notes.toLowerCase().includes(q)
+  );
+}
+
 export default function TopicsPage() {
   const today = todayISO();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [quizFor, setQuizFor] = useState<Topic | null>(null);
+  const [search, setSearch] = useState("");
   const topics = useLiveQuery(() => db.topics.toArray(), []);
   // question count per topic, so the library shows which topics have a quiz
   const quizCounts = useLiveQuery(async () => {
@@ -86,10 +97,12 @@ export default function TopicsPage() {
     );
   }
 
+  const q = search.trim().toLowerCase();
   const active = topics
     .filter((t) => !t.archived)
+    .filter((t) => matchesSearch(t, q))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  const archived = topics.filter((t) => t.archived);
+  const archived = topics.filter((t) => t.archived).filter((t) => matchesSearch(t, q));
 
   return (
     <div className="space-y-4">
@@ -98,9 +111,24 @@ export default function TopicsPage() {
         <span className="text-sm text-stone-400">{active.length} หัวข้อ</span>
       </header>
 
-      {active.length === 0 && archived.length === 0 && (
+      {topics.length > 0 && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="ค้นหาชื่อหัวข้อ วิชา หรือเนื้อหาโน้ต"
+          className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+      )}
+
+      {topics.length === 0 && (
         <p className="text-sm text-stone-400 text-center py-10">
           ยังไม่มีหัวข้อ — เริ่มที่แท็บ &quot;เพิ่มหัวข้อ&quot;
+        </p>
+      )}
+
+      {topics.length > 0 && q && active.length === 0 && archived.length === 0 && (
+        <p className="text-sm text-stone-400 text-center py-10">
+          ไม่พบหัวข้อที่ตรงกับ &quot;{search.trim()}&quot;
         </p>
       )}
 
@@ -204,6 +232,15 @@ export default function TopicsPage() {
           </ul>
         </details>
       )}
+
+      <details className="pt-2">
+        <summary className="text-sm text-stone-400 cursor-pointer">
+          พยากรณ์โหลด 30 วัน
+        </summary>
+        <div className="mt-3 rounded-xl bg-white border border-stone-200 p-3">
+          <LoadForecastChart />
+        </div>
+      </details>
 
       <details className="pt-2">
         <summary className="text-sm text-stone-400 cursor-pointer">
