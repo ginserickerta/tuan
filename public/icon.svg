@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0f766e"/>
+  <!-- circular "repeat" arrow -->
+  <path d="M256 116c-77 0-140 63-140 140s63 140 140 140c60 0 111-38 131-91"
+        fill="none" stroke="#ffffff" stroke-width="40" stroke-linecap="round"/>
+  <path d="M396 216l-14 96-88-42z" fill="#ffffff"/>
+  <!-- memory dot -->
+  <circle cx="256" cy="256" r="46" fill="#5eead4"/>
+</svg>
