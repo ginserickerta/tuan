@@ -8,6 +8,7 @@ import { deleteTopic, saveQuestions, setArchived } from "@/lib/repo";
 import { todayISO, diffDays, formatThai } from "@/lib/scheduler/dates";
 import { EXAM_LABELS } from "@/lib/scheduler/config";
 import BridgeQuiz from "@/components/BridgeQuiz";
+import BackupPanel from "@/components/BackupPanel";
 import type { Topic } from "@/lib/scheduler/types";
 
 const TRACK_CHIP: Record<string, string> = {
@@ -202,6 +203,15 @@ export default function TopicsPage() {
           </ul>
         </details>
       )}
+
+      <details className="pt-2">
+        <summary className="text-sm text-stone-400 cursor-pointer">
+          สำรอง / ย้ายข้อมูล
+        </summary>
+        <div className="mt-3">
+          <BackupPanel />
+        </div>
+      </details>
     </div>
   );
 }
