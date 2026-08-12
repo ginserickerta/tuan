@@ -9,6 +9,7 @@ import { todayISO, diffDays, formatThai } from "@/lib/scheduler/dates";
 import { EXAM_LABELS } from "@/lib/scheduler/config";
 import BridgeQuiz from "@/components/BridgeQuiz";
 import BackupPanel from "@/components/BackupPanel";
+import CalendarExport from "@/components/CalendarExport";
 import type { Topic } from "@/lib/scheduler/types";
 
 const TRACK_CHIP: Record<string, string> = {
@@ -203,6 +204,15 @@ export default function TopicsPage() {
           </ul>
         </details>
       )}
+
+      <details className="pt-2">
+        <summary className="text-sm text-stone-400 cursor-pointer">
+          เพิ่มลงปฏิทิน
+        </summary>
+        <div className="mt-3">
+          <CalendarExport />
+        </div>
+      </details>
 
       <details className="pt-2">
         <summary className="text-sm text-stone-400 cursor-pointer">
