@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ทวน
 
-## Getting Started
+แอปทบทวนแบบเว้นระยะ (spaced repetition) สำหรับเตรียมสอบเข้ามหาวิทยาลัย —
+ออกแบบรอบวันสอบจริงสองสนาม: **TGAT/TPAT (30 ม.ค. 2570)** และ
+**A-Level (13 มี.ค. 2570)**
 
-First, run the development server:
+เป็น PWA ติดตั้งลงหน้าจอโฮมได้ ใช้งานออฟไลน์ได้ ข้อมูลอยู่ในเครื่องทั้งหมด
+ไม่มีบัญชี ไม่ต้อง login
+
+---
+
+## ทำไมไม่ใช้ Anki
+
+ตัวจัดตารางไม่ได้ทำงานแบบ "ทบทวนไปเรื่อยๆ" แต่**รู้ว่าเหลือเวลาอีกกี่วันถึงวันสอบ**
+แล้วบีบตารางเข้าหาวันนั้น
+
+- **บีบ interval ตามวันที่เหลือ** — ระยะห่างสูงสุดถูกจำกัดไว้ที่ 20% ของวันที่เหลือ
+  (อิงงานวิจัยของ Cepeda et al.) ยิ่งใกล้สอบยิ่งทบทวนถี่ขึ้นเอง
+- **กันสนามหลังไม่ให้เน่า** — ช่วง 60 วันสุดท้ายก่อน TGAT ระบบให้ TGAT มาก่อน
+  แต่ยังกัน 20% ของเวลาไว้ให้ A-Level เสมอ ไม่งั้นพอสอบ TGAT เสร็จจะเหลือเวลา
+  6 สัปดาห์กับเนื้อหาที่ลืมไปหมดแล้ว
+- **เพดานเวลาจริง** — 30 นาที (จ–ศ) / 75 นาที (ส–อา) เกินเพดานคิวยกไปวันถัดไป
+- **โหมดกู้คิว** — งานค้างเกิน 2 เท่าของเพดาน ทุกหัวข้อถูกบีบเหลือ 1 นาที
+  เพื่อให้เคลียร์ได้จริงแทนที่จะยอมแพ้ทิ้งทั้งกอง
+- **โค้งสุดท้าย** — 3 วันก่อนสอบ หัวข้อที่อ่อน (ease < 2.3) ถูกกวาดเข้ามาทุกวัน
+
+ให้คะแนน 4 ระดับได้ตั้งแต่**วันแรกที่เรียน** ไม่ต้องรอถึงวันทบทวน
+และลงย้อนหลังได้ถ้าเพิ่งมากรอกทีหลัง — ตารางนับจากวันที่เรียนจริง
+
+## ระบบอื่น
+
+**ควิซก่อนให้คะแนน** — แต่ละหัวข้อมีคลังข้อสอบ ระบบเสิร์ฟตามระดับความยากที่ปรับ
+ขึ้นลงเอง (ตอบ "ง่ายมาก" 2 ครั้งติด → เลื่อนระดับขึ้น, ตอบพลาด → ลดลง)
+โจทย์คำนวณมีชุดตัวเลขสำรอง สุ่มสลับทุกครั้งเพื่อไม่ให้จำคำตอบได้
+
+**สร้างควิซฟรีผ่าน claude.ai** — คัดลอกคำสั่ง → วางใน claude.ai → วาง JSON กลับ
+ตัวแปลงทนกับคำตอบที่มีข้อความปน ลืม code fence หรือฟิลด์เพี้ยน
+(มีเส้นทางผ่าน Claude API ด้วย ใส่ `ANTHROPIC_API_KEY` แล้วโหมดถ่ายรูป + OCR จะเปิดใช้งาน)
+
+**ปฏิทินอัตโนมัติ** — สมัคร `webcal://` ครั้งเดียว ปฏิทิน iPhone/Google จะดึงตาราง
+ใหม่เองทุกครั้งที่กดคะแนน แอปส่งเฉพาะผลพยากรณ์ขึ้นเซิร์ฟเวอร์ ผูกกับ token
+สุ่ม 128 บิต ไม่มีบัญชีผู้ใช้
+
+**สำรอง / ย้ายข้อมูล** — export/import ทั้งฐานข้อมูลเป็น JSON เลือกได้ว่าจะแทนที่
+ทั้งหมด (ย้ายเครื่อง) หรือเพิ่มเฉพาะที่ยังไม่มี (รวมจากสองเครื่อง)
+
+## Stack
+
+Next.js 16 · TypeScript · Tailwind v4 · Dexie (IndexedDB) · KaTeX ·
+Vercel Blob · deploy บน Vercel
+
+ตัวจัดตารางทั้งหมดเป็น pure TypeScript ใน [`src/lib/scheduler/`](src/lib/scheduler/)
+ไม่มี dependency กับ DB หรือ DOM — ค่าที่ปรับได้ทุกตัวรวมอยู่ใน
+[`config.ts`](src/lib/scheduler/config.ts) ไฟล์เดียว
+
+## รันในเครื่อง
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ตรวจตรรกะด้วยสคริปต์จำลอง (ไม่ใช่ test suite — เขียนไว้ให้อ่านผลด้วยตาเอง):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx tsx scripts/sim.ts           # ตารางทบทวน 30 วัน
+npx tsx scripts/sim-bridge.ts    # ตัวแปลง JSON จาก claude.ai — 18 เคส
+npx tsx scripts/sim-calendar.ts  # พยากรณ์โหลด + ไฟล์ .ics — 28 เคส
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## หมายเหตุเรื่องข้อมูล
 
-## Learn More
+ข้อมูลเก็บใน IndexedDB **ผูกกับเบราว์เซอร์ + โดเมนเดียว** ไม่ซิงก์ข้ามเครื่องเอง
+ต้อง export/import เป็นไฟล์ วิธีเดียวที่ข้อมูลจะหายคือเบราว์เซอร์ล้างข้อมูลทิ้ง
+แอปจึงขอสิทธิ์ `navigator.storage.persist()` และเตือนให้สำรองทุก 7 วัน
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+เขียนโดย Rut · ผู้ช่วยเขียนโค้ด: Claude Code
