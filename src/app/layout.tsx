@@ -14,6 +14,13 @@ export const metadata: Metadata = {
   title: "ทวน — Spaced Repetition",
   description: "ระบบทบทวนแบบเว้นระยะ เตรียมสอบ TGAT/TPAT และ A-Level",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-touch-icon.png", // iOS ignores SVG manifest icons
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
