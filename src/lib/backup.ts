@@ -4,6 +4,7 @@
 // a cleared browser profile and losing every topic. It doubles as the manual
 // way to move data between the PC and an iPhone: export here, import there.
 import { db } from "./db";
+import { schedulePublish } from "./calendar/publish";
 import type { QuizQuestion, ReviewLog, Topic } from "./scheduler/types";
 import { todayISO } from "./scheduler/dates";
 
@@ -109,6 +110,7 @@ export async function restoreReplace(b: BackupFile): Promise<BackupCounts> {
     await db.reviews.bulkAdd(b.reviews);
     await db.questions.bulkAdd(b.questions);
   });
+  schedulePublish();
   return countsOf(b);
 }
 
@@ -161,5 +163,6 @@ export async function restoreMerge(b: BackupFile): Promise<BackupCounts> {
     }
   });
 
+  schedulePublish();
   return { topics: addedTopics, reviews: addedReviews, questions: addedQuestions };
 }

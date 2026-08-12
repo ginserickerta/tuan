@@ -1,6 +1,7 @@
 // Write-side operations: create a topic (with Day-0 grade) and record a review.
 // All scheduling math is delegated to the pure engine.
 import { db } from "./db";
+import { schedulePublish } from "./calendar/publish";
 import { initialSchedule, nextSchedule, estimateMinutes } from "./scheduler/engine";
 import { FLASH_MINUTES } from "./scheduler/config";
 import { todayISO } from "./scheduler/dates";
@@ -55,6 +56,7 @@ export async function addTopic(input: NewTopicInput): Promise<number> {
     easeAfter: sched.ease,
     estMinutes: 0, // studying time isn't charged against the review cap
   });
+  schedulePublish(); // keep the subscribed calendar in step
   return id as number;
 }
 
@@ -115,6 +117,7 @@ export async function reviewTopic(
       estMinutes: flash ? FLASH_MINUTES : estimateMinutes(topic.subjectType),
     });
   });
+  schedulePublish();
 }
 
 /** Minutes already charged against today's cap. */
@@ -130,6 +133,7 @@ export async function newTopicsToday(): Promise<number> {
 
 export async function setArchived(id: number, archived: boolean): Promise<void> {
   await db.topics.update(id, { archived });
+  schedulePublish();
 }
 
 export async function deleteTopic(id: number): Promise<void> {
@@ -138,6 +142,7 @@ export async function deleteTopic(id: number): Promise<void> {
     await db.reviews.where("topicId").equals(id).delete();
     await db.questions.where("topicId").equals(id).delete();
   });
+  schedulePublish();
 }
 
 /** Create a topic (Day-0 graded) together with its generated quiz pool. */
