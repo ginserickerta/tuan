@@ -11,6 +11,7 @@ import { initialSchedule } from "@/lib/scheduler/engine";
 import { todayISO } from "@/lib/scheduler/dates";
 import { NEW_TOPICS_PER_DAY_TARGET } from "@/lib/scheduler/config";
 import GradeButtons from "@/components/GradeButtons";
+import PhotoFlow from "./PhotoFlow";
 import type { ExamTrack, Grade, SubjectType } from "@/lib/scheduler/types";
 
 const SUBJECTS = [
@@ -28,6 +29,7 @@ const TYPE_OPTIONS: { value: SubjectType; label: string; desc: string }[] = [
 
 export default function AddPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"photo" | "manual">("photo");
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [examTrack, setExamTrack] = useState<ExamTrack>("ALEVEL");
@@ -85,6 +87,27 @@ export default function AddPage() {
     <div className="space-y-4">
       <h1 className="text-xl font-bold">เพิ่มหัวข้อที่เรียนวันนี้</h1>
 
+      {/* mode switcher */}
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-stone-200/60 p-1">
+        {(
+          [
+            ["photo", "📷 จากรูปสมุด"],
+            ["manual", "✍️ พิมพ์เอง"],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setMode(v)}
+            className={`rounded-lg py-2 text-sm font-medium ${
+              mode === v ? "bg-white shadow-sm text-stone-800" : "text-stone-500"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {typeof addedToday === "number" && addedToday >= NEW_TOPICS_PER_DAY_TARGET && (
         <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
           ⚠️ วันนี้เพิ่มไปแล้ว {addedToday} หัวข้อ — เกิน {NEW_TOPICS_PER_DAY_TARGET}{" "}
@@ -93,6 +116,9 @@ export default function AddPage() {
         </div>
       )}
 
+      {mode === "photo" && <PhotoFlow />}
+
+      {mode === "manual" && (
       <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium mb-1">หัวข้อ</label>
@@ -192,6 +218,7 @@ export default function AddPage() {
           ถัดไป: ประเมินความเข้าใจ →
         </button>
       </div>
+      )}
     </div>
   );
 }

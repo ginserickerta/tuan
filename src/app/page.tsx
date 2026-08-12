@@ -12,7 +12,8 @@ import { daysToExam, nextSchedule } from "@/lib/scheduler/engine";
 import { todayISO, formatThai } from "@/lib/scheduler/dates";
 import { EXAM_LABELS } from "@/lib/scheduler/config";
 import GradeButtons from "@/components/GradeButtons";
-import type { Grade } from "@/lib/scheduler/types";
+import QuizSession from "@/components/QuizSession";
+import type { Grade, QuizQuestion } from "@/lib/scheduler/types";
 
 const TRACK_CHIP: Record<string, string> = {
   TGAT_TPAT: "bg-violet-100 text-violet-700",
@@ -23,6 +24,8 @@ export default function TodayPage() {
   const today = todayISO();
   const [showNotes, setShowNotes] = useState(false);
   const [doneCount, setDoneCount] = useState(0);
+  // topic id whose quiz pass is finished (grade buttons unlocked)
+  const [quizDoneFor, setQuizDoneFor] = useState<number | null>(null);
 
   const data = useLiveQuery(async () => {
     const [topics, logs] = await Promise.all([
@@ -30,19 +33,35 @@ export default function TodayPage() {
       db.reviews.where("date").equals(today).toArray(),
     ]);
     const usedMinutes = logs.reduce((s, l) => s + l.estMinutes, 0);
-    return { plan: buildDayPlan(topics, today, usedMinutes), topicCount: topics.length };
+    const plan = buildDayPlan(topics, today, usedMinutes);
+    // preload quiz pool for the topic at the head of the queue
+    const headId = plan.items[0]?.topic.id;
+    const pools = new Map<number, QuizQuestion[]>();
+    if (headId != null) {
+      pools.set(headId, await db.questions.where("topicId").equals(headId).toArray());
+    }
+    return { plan, topicCount: topics.length, pools };
   }, [today]);
 
   if (!data) return <p className="text-stone-400 text-sm mt-8 text-center">กำลังโหลด…</p>;
 
   const { plan, topicCount } = data;
   const current = plan.items[0]; // live query re-runs after each review, so [0] is always next
+  const quizPool = data.pools.get(current?.topic.id ?? -1) ?? [];
+  // flash/cram passes skip the quiz — they're 1-minute recalls by design
+  const quizFinished =
+    !current ||
+    quizPool.length === 0 ||
+    quizDoneFor === current.topic.id ||
+    plan.flashMode ||
+    current.isCram;
   const dTgat = daysToExam("TGAT_TPAT", today);
   const dAlevel = daysToExam("ALEVEL", today);
 
   async function grade(g: Grade) {
     if (!current) return;
     setShowNotes(false);
+    setQuizDoneFor(null);
     setDoneCount((c) => c + 1);
     await reviewTopic(current.topic, g, plan.flashMode || current.isCram);
   }
@@ -134,28 +153,41 @@ export default function TodayPage() {
             {current.topic.title}
           </h2>
 
-          <p className="text-xs text-stone-400">
-            {current.topic.subjectType === "calculation"
-              ? "✍️ ลองทำโจทย์เรื่องนี้ 1–3 ข้อก่อน แล้วค่อยให้คะแนน"
-              : "🧠 พยายามนึกเนื้อหาให้ได้ก่อน แล้วค่อยเปิดโน้ตเช็ก"}
-          </p>
+          {!quizFinished ? (
+            <QuizSession
+              key={current.topic.id}
+              topic={current.topic}
+              pool={quizPool}
+              onDone={() => setQuizDoneFor(current.topic.id!)}
+            />
+          ) : (
+            <>
+              {quizPool.length === 0 && (
+                <p className="text-xs text-stone-400">
+                  {current.topic.subjectType === "calculation"
+                    ? "✍️ ลองทำโจทย์เรื่องนี้ 1–3 ข้อก่อน แล้วค่อยให้คะแนน"
+                    : "🧠 พยายามนึกเนื้อหาให้ได้ก่อน แล้วค่อยเปิดโน้ตเช็ก"}
+                </p>
+              )}
 
-          {current.topic.notes &&
-            (showNotes ? (
-              <div className="rounded-xl bg-stone-50 border border-stone-100 p-3 text-sm whitespace-pre-wrap">
-                {current.topic.notes}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowNotes(true)}
-                className="w-full rounded-xl border border-dashed border-stone-300 py-2 text-sm text-stone-500 active:bg-stone-100"
-              >
-                👁 เปิดโน้ตเช็กคำตอบ
-              </button>
-            ))}
+              {current.topic.notes &&
+                (showNotes ? (
+                  <div className="rounded-xl bg-stone-50 border border-stone-100 p-3 text-sm whitespace-pre-wrap">
+                    {current.topic.notes}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowNotes(true)}
+                    className="w-full rounded-xl border border-dashed border-stone-300 py-2 text-sm text-stone-500 active:bg-stone-100"
+                  >
+                    👁 เปิดโน้ตเช็กคำตอบ
+                  </button>
+                ))}
 
-          <GradeButtons mode="review" onGrade={grade} hints={hints} />
+              <GradeButtons mode="review" onGrade={grade} hints={hints} />
+            </>
+          )}
         </div>
       ) : (
         <div className="rounded-2xl bg-white border border-stone-200 p-8 text-center space-y-2">
